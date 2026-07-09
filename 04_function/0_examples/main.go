@@ -60,9 +60,9 @@ func main() {
 	fmt.Println(message)
 }
 
-func Add(a int, b int) int {
-	return a + b
-}
+//func Add(a int, b int) int {
+//	return a + b
+//}
 
 func PrepareUserName(input string) string {
 	trimmed := strings.TrimSpace(input)
