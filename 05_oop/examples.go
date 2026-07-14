@@ -36,7 +36,7 @@ func Example_InitializationStructs() {
 	p3 := Point{X: 7.0} // Y будет 0
 	fmt.Printf("p3 (partial): %+v\n", p3)
 
-	// Адресс структуры
+	// Адрес структуры
 	ptr := &p2
 	fmt.Printf("ptr.X = %v\n", ptr.X)
 	ptr.X = 100 // Автоматическое разыменование

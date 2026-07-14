@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_fuzzing_test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_golden_files_test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_tests" vcs="Git" />
   </component>
 </project>
