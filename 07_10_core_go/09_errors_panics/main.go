@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
-var ErrUserNotFound = errors.New("пользователь не найден")
+var ErrEmptyText = errors.New("текст пуст")
 
 type ValidationError struct {
 	Field string
@@ -17,47 +18,74 @@ func (e ValidationError) Error() string {
 }
 
 func main() {
-	for _, id := range []int{42, -1, 7} {
-		name, err := loadUserName(id)
-		if err != nil {
-			fmt.Printf("загрузка пользователя %d: %v\n", id, err)
+	fmt.Println("Тема 9. Ошибки на задаче подготовки отчета")
+	fmt.Println()
 
-			if errors.Is(err, ErrUserNotFound) {
-				fmt.Println("  найдена сигнальная ошибка")
+	for _, text := range []string{
+		"Go, go, тесты!",
+		"   ",
+		"Go",
+	} {
+		report, err := buildReport(text)
+		if err != nil {
+			fmt.Printf("вход %q: %v\n", text, err)
+
+			if errors.Is(err, ErrEmptyText) {
+				fmt.Println("  причина найдена через errors.Is: пустой текст")
 			}
 
 			var validationErr ValidationError
 			if errors.As(err, &validationErr) {
-				fmt.Printf("  найдена ошибка валидации: поле=%s\n", validationErr.Field)
+				fmt.Printf("  детали найдены через errors.As: поле=%s значение=%q\n", validationErr.Field, validationErr.Value)
 			}
+			fmt.Println()
 			continue
 		}
 
-		fmt.Println("загружен:", name)
+		fmt.Println(report)
+		fmt.Println()
 	}
 
-	result, err := safeDivide(10, 0)
-	fmt.Println("безопасное деление:", result, err)
+	result, err := safelyDivide(10, 0)
+	fmt.Println("recover на границе опасной операции:", result, err)
 }
 
-func loadUserName(id int) (string, error) {
-	defer fmt.Println("  очистка после загрузки пользователя с id", id)
+func buildReport(text string) (report string, err error) {
+	defer fmt.Println("  defer: завершена попытка построить отчет")
 
-	if id < 0 {
-		return "", fmt.Errorf("проверка id: %w", ValidationError{
-			Field: "идентификатор",
-			Value: fmt.Sprint(id),
-		})
+	words, err := parseWords(text)
+	if err != nil {
+		return "", fmt.Errorf("подготовка слов: %w", err)
 	}
 
-	if id != 42 {
-		return "", fmt.Errorf("запрос к хранилищу: %w", ErrUserNotFound)
+	counts := make(map[string]int, len(words))
+	for _, word := range words {
+		counts[word]++
 	}
 
-	return "Ада", nil
+	return fmt.Sprintf("отчет для %q: слов=%d уникальных=%d", text, len(words), len(counts)), nil
 }
 
-func safeDivide(a, b int) (result int, err error) {
+func parseWords(text string) ([]string, error) {
+	if strings.TrimSpace(text) == "" {
+		return nil, ErrEmptyText
+	}
+
+	words := strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
+		return r == ' ' || r == ',' || r == '!' || r == '.'
+	})
+
+	if len(words) < 2 {
+		return nil, ValidationError{
+			Field: "количество слов",
+			Value: fmt.Sprint(len(words)),
+		}
+	}
+
+	return words, nil
+}
+
+func safelyDivide(a, b int) (result int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("паника перехвачена: %v", r)

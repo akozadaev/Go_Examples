@@ -33,5 +33,6 @@ func RenderReport(counts map[string]int) string {
 }
 
 func NormalizeSpaces(s string) string {
-	return strings.Join(strings.Fields(s), " ")
+	validUTF8 := string([]rune(s))
+	return strings.Join(strings.Fields(validUTF8), " ")
 }
