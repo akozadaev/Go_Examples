@@ -1,0 +1,1 @@
+echo "Привет UDP!" | nc -u -w1  localhost 8081
