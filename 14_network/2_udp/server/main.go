@@ -32,6 +32,11 @@ func main() {
 		fmt.Printf("From %s: %s", clientAddr, msg)
 
 		// Отправляем ответ
-		conn.WriteToUDP([]byte("Привет, привет!"), clientAddr)
+		b, err := conn.WriteToUDP([]byte("Привет, привет!"), clientAddr)
+		if err != nil {
+			fmt.Println("Получили ошибку:", err)
+			continue
+		}
+		fmt.Println(b)
 	}
 }
