@@ -1,0 +1,5 @@
+app:
+  host: from-config.local
+  port: 6666
+db:
+  name: config_db

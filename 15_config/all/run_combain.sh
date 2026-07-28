@@ -1,0 +1,1 @@
+APP_APP_HOST=cli-env.local go run main.go --app.port 1234
