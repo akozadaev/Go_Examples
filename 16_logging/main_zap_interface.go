@@ -7,6 +7,7 @@ import (
 type Logger interface {
 	Info(msg string)
 	Error(msg string)
+	ErrorSugar(msg string)
 }
 
 type ZapLogger struct {
@@ -29,6 +30,12 @@ func (zl *ZapLogger) Error(msg string) {
 	zl.logger.Error(msg)
 }
 
+func (zl *ZapLogger) ErrorSugar(msg string) {
+	zl.logger.Sugar().Errorw(msg,
+		"logger", "zap",
+		"example", "sugared logger")
+}
+
 func main() {
 	logger, err := NewZapLogger()
 	if err != nil {
@@ -38,4 +45,5 @@ func main() {
 
 	logger.Info("This is an informational message.")
 	logger.Error("This is an error message.")
+	logger.ErrorSugar("This is an error message.")
 }

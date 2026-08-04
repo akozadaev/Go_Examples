@@ -5,6 +5,7 @@
     <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_fuzzing_test" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_golden_files_test" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/07_10_core_go/10_testing/go_tests" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/14_network/go_network_example" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/17_db/go_message_handler_with_pessimistic_locking" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/18_service/grpc-demo" vcs="Git" />
   </component>
 </project>

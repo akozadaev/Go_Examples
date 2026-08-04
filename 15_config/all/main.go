@@ -31,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Short: "Demo: unified config from flags, env, and file",
 	Run: func(cmd *cobra.Command, args []string) {
 		// === Отладка: выводим все ключи и значения из viper ===
-		fmt.Println("🔍 Viper configuration debug:")
+		fmt.Println("Viper configuration debug:")
 		keys := []string{"app.host", "app.port", "db.name"}
 		for _, key := range keys {
 			val := viper.Get(key)
@@ -42,7 +42,7 @@ var rootCmd = &cobra.Command{
 
 		// Применяем приоритет: Viper сам обрабатывает это
 		if err := viper.Unmarshal(&config); err != nil {
-			fmt.Printf("❌ Unable to decode config: %v\n", err)
+			fmt.Printf("Unable to decode config: %v\n", err)
 			os.Exit(1)
 		}
 

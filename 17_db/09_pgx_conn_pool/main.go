@@ -21,6 +21,10 @@ func main() {
 	}
 	defer pool.Close()
 
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("Не удалось подключиться к PostgreSQL: %v", err)
+	}
+
 	fmt.Println("Пул подключений к PostgreSQL создан.")
 
 	// Выполняем миграцию (создание таблиц)
