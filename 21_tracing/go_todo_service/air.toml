@@ -1,0 +1,21 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ./cmd/api"
+entrypoint = ["./tmp/main"]
+delay = 1000
+
+exclude_dir = [
+  "assets",
+  "tmp",
+  "vendor",
+  "bin",
+  ".git",
+  ".idea"
+]
+
+include_dir = ["cmd", "internal", "config"]
+include_ext = ["go", "tmpl", "html"]
+exclude_regex = ["_test.go"]
+stop_on_error = true
