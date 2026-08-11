@@ -46,6 +46,6 @@ logs/
 profiles/
 !profiles/.gitkeep
 
-# Generated API docs
-api/
-!api/.gitkeep
+# Generated API docs. Ведущий / важен: без него правило также скрывает cmd/api.
+/api/
+!/api/.gitkeep
