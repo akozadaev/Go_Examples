@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/mailru/easyjson/jwriter"
 )
 
 var (
@@ -74,6 +76,24 @@ func BenchmarkEasyJSONMarshal(b *testing.B) {
 		}
 		benchmarkJSON = data
 	}
+}
+
+func BenchmarkEasyJSONMarshalReuseBuffer(b *testing.B) {
+	user := newBenchmarkUser()
+	data := make([]byte, 0, 512)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		w := jwriter.Writer{}
+		w.Buffer.Buf = data[:0]
+		user.MarshalEasyJSON(&w)
+		if w.Error != nil {
+			b.Fatal(w.Error)
+		}
+		data = w.Buffer.BuildBytes(data[:0])
+	}
+	benchmarkJSON = data
 }
 
 func BenchmarkStandardJSONMarshal(b *testing.B) {

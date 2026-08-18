@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	var _ impl_example.Logger = (*impl_example.FileLogger)(nil)
 	// Демонстрация использования impl
 	fmt.Println("=== Демонстрация impl ===")
 
@@ -24,4 +25,3 @@ func main() {
 
 	fmt.Println("Логи записаны в app.log")
 }
-
