@@ -34,5 +34,12 @@ func run() (err error) {
 	}
 
 	fmt.Printf("Written %d bytes\n", n)
+
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 4096), 4096)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
 	return nil
+
 }

@@ -12,4 +12,11 @@ func main() {
 		return
 	}
 	fmt.Println("Каталог 'mydirectory' создан успешно.")
+
+	file, err := os.OpenInRoot("/mnt", "wsl")
+	defer file.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(file.Name())
 }

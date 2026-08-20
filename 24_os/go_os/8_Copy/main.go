@@ -30,7 +30,7 @@ func run() (err error) {
 		}
 	}()
 
-	n, err := io.Copy(destFile, sourceFile)
+	n, err := io.Copy(destFile, io.LimitReader(sourceFilem, 999))
 	if err != nil {
 		return fmt.Errorf("copy: %w", err)
 	}
