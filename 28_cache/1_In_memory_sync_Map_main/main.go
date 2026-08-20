@@ -22,7 +22,9 @@ func main() {
 	cache.Set("user:1", "Алексей")
 	if val, ok := cache.Get("user:1"); ok {
 		fmt.Println("cache hit:", val)
+	} else {
+		_, ok := cache.Get("user:2")
+		fmt.Println("cache miss:", !ok)
 	}
-	_, ok := cache.Get("user:2")
-	fmt.Println("cache miss:", !ok)
+
 }
