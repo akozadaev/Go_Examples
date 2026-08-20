@@ -76,13 +76,13 @@ cd ../26_code_generation/go_code_generation
 | Тема | Исходный или основной файл | Результат/демонстрация | Команда |
 |---|---|---|---|
 | Обзор всех директив | Go-файлы с `//go:generate` | План генерации без изменения файлов | `go generate -n ./...` |
-| `stringer` | [`stringer_example/status.go`](../26_code_generation/go_code_generation/stringer_example/status.go) | `stringer_example/status_string.go`, запуск через `cmd/stringer` | `go run ./cmd/stringer` |
-| `jsonenums` | [`jsonenums_example/priority.go`](../26_code_generation/go_code_generation/jsonenums_example/priority.go) | `priority_jsonenums.go`, строковый JSON и ошибка неизвестного значения | `go run ./cmd/jsonenums` |
-| `easyjson` | [`easyjson_example/user.go`](../26_code_generation/go_code_generation/easyjson_example/user.go) | `user_easyjson.go`, кодирование и декодирование без runtime-reflection в generated-коде | `go run ./cmd/easyjson` |
-| Benchmark JSON | [`easyjson_example/benchmark_test.go`](../26_code_generation/go_code_generation/easyjson_example/benchmark_test.go) | Честное сравнение generated-методов с отдельными типами без этих методов | `go test -bench=. -benchmem ./easyjson_example` |
-| `impl` | [`impl_example/logger.go`](../26_code_generation/go_code_generation/impl_example/logger.go) | Реализация в `file_logger.go` и демонстрация интерфейса | `go run ./cmd/impl` |
-| Собственный AST-генератор | [`cmd/mapper/main.go`](../26_code_generation/go_code_generation/cmd/mapper/main.go) | Генератор анализирует структуры; отдельный `cmd/mapper-demo` запускает готовый результат | `go run ./cmd/mapper-demo` |
-| Вход генератора мапперов | [`mapper_example/user.go`](../26_code_generation/go_code_generation/mapper_example/user.go) | `mapper_example/user_mapper_gen.go` | `go generate ./mapper_example` |
+| `stringer` | [`stringer_example/status.go`](../26_code_generation/stringer_example/status.go) | `stringer_example/status_string.go`, запуск через `cmd/stringer` | `go run ./cmd/stringer` |
+| `jsonenums` | [`jsonenums_example/priority.go`](../26_code_generation/jsonenums_example/priority.go) | `priority_jsonenums.go`, строковый JSON и ошибка неизвестного значения | `go run ./cmd/jsonenums` |
+| `easyjson` | [`easyjson_example/user.go`](../26_code_generation/easyjson_example/user.go) | `user_easyjson.go`, кодирование и декодирование без runtime-reflection в generated-коде | `go run ./cmd/easyjson` |
+| Benchmark JSON | [`easyjson_example/benchmark_test.go`](../26_code_generation/easyjson_example/benchmark_test.go) | Честное сравнение generated-методов с отдельными типами без этих методов | `go test -bench=. -benchmem ./easyjson_example` |
+| `impl` | [`impl_example/logger.go`](../26_code_generation/impl_example/logger.go) | Реализация в `file_logger.go` и демонстрация интерфейса | `go run ./cmd/impl` |
+| Собственный AST-генератор | [`cmd/mapper/main.go`](../26_code_generation/cmd/mapper/main.go) | Генератор анализирует структуры; отдельный `cmd/mapper-demo` запускает готовый результат | `go run ./cmd/mapper-demo` |
+| Вход генератора мапперов | [`mapper_example/user.go`](../26_code_generation/mapper_example/user.go) | `mapper_example/user_mapper_gen.go` | `go generate ./mapper_example` |
 | Проверка проекта | Весь модуль | Компиляция примеров и статический анализ | `go test ./...` и `go vet ./...` |
 
 ### Как пользоваться картой во время занятия

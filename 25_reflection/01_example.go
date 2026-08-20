@@ -10,11 +10,13 @@ import (
 )
 
 func main() {
-	x := 324
+	//x := 324
+	var x interface{} = 324
 	v := reflect.ValueOf(x)
 	t := reflect.TypeOf(x)
 	fmt.Println(t)
 	fmt.Println(v.Int())
+
 	// === Проблема typed nil ====
 	var a any = nil
 	var p *int = nil
@@ -23,7 +25,7 @@ func main() {
 	fmt.Println("reflect.ValueOf(a) =", reflect.ValueOf(a))
 	fmt.Println("reflect.TypeOf(b) =", reflect.TypeOf(b))
 	fmt.Println("reflect.ValueOf(b) =", reflect.ValueOf(b))
-	fmt.Println(a, b)
+	fmt.Println(b == nil)
 
 	err := f()
 	fmt.Println(err)
@@ -38,9 +40,12 @@ func main() {
 	fmt.Println(tp.Name())   // UserID
 	fmt.Println(tp.PkgPath())
 	fmt.Println(tp.Kind()) // int64
-
+	fmt.Println("=== end Тип, имя, категория")
 	describe(id)
 	// TypeFor
+	//
+	//writerType := reflect.TypeOf((*io.Writer)(nil)).Elem()
+	// Версия go 1.22+
 	writerType := reflect.TypeFor[io.Writer]()
 	fileType := reflect.TypeFor[*os.File]()
 	fmt.Println(fileType.Implements(writerType)) // true
@@ -90,8 +95,11 @@ func main() {
 	fieldByName(pe)
 
 	//	Адресуемость и изменение значений
+	fmt.Println("Адресуемость и изменение значений")
 	x3 := 42
 	v3 := reflect.ValueOf(&x3)
+	fmt.Println(v3.CanSet()) //false
+	//v3.SetInt(23) // так нельзя!!
 	elem := v3.Elem()
 
 	fmt.Println(elem.CanAddr()) // true
@@ -144,6 +152,19 @@ func main() {
 		fmt.Println("Результат toMap:", resultMap)
 	}
 
+	// Slices
+	items := []int{10, 20, 30}
+	v4 := reflect.ValueOf(items)
+	v4.Index(0).SetInt(99)
+	fmt.Println("items = ", items)
+
+	// Map
+	m := map[string]int{"a": 0}
+	v5 := reflect.ValueOf(m)
+	v5.SetMapIndex(reflect.ValueOf("b"), reflect.ValueOf(2))
+	fmt.Println("map = ", m)
+	v5.SetMapIndex(reflect.ValueOf("a"), reflect.Value{})
+	fmt.Println("map = ", m)
 	//	Функции и методы
 
 }
