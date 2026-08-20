@@ -6,9 +6,9 @@ import (
 	"log"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // Подключаем pprof
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/akozadaev/go_todo_service/internal/handler"
 	"github.com/akozadaev/go_todo_service/internal/logger"
 	"github.com/akozadaev/go_todo_service/internal/middleware"
+	"github.com/akozadaev/go_todo_service/internal/observability"
 	"github.com/akozadaev/go_todo_service/internal/repository"
 	"github.com/akozadaev/go_todo_service/internal/service"
 	"github.com/akozadaev/go_todo_service/pkg/trace"
@@ -85,7 +86,7 @@ func main() {
 		logger.Logger.Info("Starting application",
 			zap.String("server", cfg.Server.GetServerAddress()),
 			zap.String("log_level", cfg.Logger.Level),
-			zap.String("pprof_url", "http://"+cfg.Server.GetServerAddress()+"/debug/pprof/"))
+			zap.String("admin_server", cfg.Admin.GetAddress()))
 	}
 
 	// Подключаемся к базе данных
@@ -96,6 +97,13 @@ func main() {
 		}
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		logger.Logger.Fatal("Failed to access SQL connection pool", zap.Error(err))
+	}
+	metrics := observability.NewMetrics(sqlDB)
+	runtime.SetBlockProfileRate(cfg.Admin.BlockProfileRate)
+	runtime.SetMutexProfileFraction(cfg.Admin.MutexProfileFraction)
 
 	// Выполняем миграции
 	if err = database.AutoMigrate(db); err != nil {
@@ -125,7 +133,8 @@ func main() {
 		})))
 	}
 	router.Use(middleware.Logger()) // Кастомный logger
-	router.Use(middleware.CORS())   // CORS support
+	router.Use(metrics.HTTPMiddleware())
+	router.Use(middleware.CORS()) // CORS support
 
 	// Регистрируем health endpoints
 	healthHandler.RegisterRoutes(router)
@@ -137,24 +146,6 @@ func main() {
 	// OpenAPI документация доступна через файловый сервер
 	// Используйте: make swag-local для просмотра документации
 
-	// Регистрируем pprof endpoints для профилирования
-	pprofGroup := router.Group("/debug/pprof")
-	pprofGroup.Use(middleware.PProfAuth()) // Защищаем pprof endpoints
-	{
-		pprofGroup.GET("/", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/cmdline", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/profile", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.POST("/symbol", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/symbol", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/trace", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/allocs", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/block", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/goroutine", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/heap", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/mutex", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-		pprofGroup.GET("/threadcreate", gin.WrapF(http.DefaultServeMux.ServeHTTP))
-	}
-
 	// Создаем HTTP сервер
 	server := &http.Server{
 		Addr:         cfg.Server.GetServerAddress(),
@@ -162,16 +153,21 @@ func main() {
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 	}
+	adminServer := observability.NewAdminServer(cfg.Admin.GetAddress(), cfg.Admin.PProfToken, metrics)
 
 	// Создаем gRPC сервер
-	grpcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(metrics.UnaryServerInterceptor()),
+		grpc.ChainStreamInterceptor(metrics.StreamServerInterceptor()),
+	)
 	if cfg.Server.EnableGRPCReflection {
 		reflection.Register(grpcServer)
 	}
 
 	// Регистрируем gRPC сервис
 	todopb.RegisterTodoServiceServer(grpcServer, todoGRPCHandler)
-	serverErrors := make(chan error, 2)
+	serverErrors := make(chan error, 3)
 	grpcAddr := cfg.Server.GetGRPCAddress()
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
@@ -187,6 +183,17 @@ func main() {
 		}
 		if serveErr := server.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
 			serverErrors <- fmt.Errorf("HTTP server: %w", serveErr)
+		}
+	}()
+
+	go func() {
+		logger.Logger.Info("Starting admin server",
+			zap.String("address", adminServer.Addr),
+			zap.String("metrics_path", "/metrics"),
+			zap.String("pprof_path", "/debug/pprof/"),
+		)
+		if serveErr := adminServer.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
+			serverErrors <- fmt.Errorf("admin server: %w", serveErr)
 		}
 	}()
 
@@ -229,6 +236,9 @@ func main() {
 		} else {
 			log.Printf("HTTP server forced to shutdown: %v", err)
 		}
+	}
+	if err = adminServer.Shutdown(ctx); err != nil {
+		logger.Logger.Error("Admin server forced to shutdown", zap.Error(err))
 	}
 
 	// Останавливаем gRPC сервер

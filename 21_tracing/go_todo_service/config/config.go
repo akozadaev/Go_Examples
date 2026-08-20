@@ -11,9 +11,18 @@ import (
 
 type Config struct {
 	Server   ServerConfig
+	Admin    AdminConfig
 	Database DatabaseConfig
 	Logger   LoggerConfig
 	Trace    TraceConfig
+}
+
+type AdminConfig struct {
+	Host                 string
+	Port                 string
+	PProfToken           string
+	BlockProfileRate     int
+	MutexProfileFraction int
 }
 
 type ServerConfig struct {
@@ -77,6 +86,13 @@ func Load() (*Config, error) {
 			GinMode:              getEnv("GIN_MODE", "debug"),
 			EnableGRPCReflection: getBoolEnv("GRPC_REFLECTION_ENABLED", true),
 		},
+		Admin: AdminConfig{
+			Host:                 getEnv("ADMIN_HOST", "127.0.0.1"),
+			Port:                 getEnv("ADMIN_PORT", "9090"),
+			PProfToken:           getEnv("PPROF_TOKEN", ""),
+			BlockProfileRate:     getIntEnv("PPROF_BLOCK_PROFILE_RATE", 0),
+			MutexProfileFraction: getIntEnv("PPROF_MUTEX_PROFILE_FRACTION", 0),
+		},
 		Database: DatabaseConfig{
 			Host:         getEnv("DB_HOST", "localhost"),
 			Port:         getEnv("DB_PORT", "5432"),
@@ -124,6 +140,9 @@ func (c *Config) validate() error {
 	if c.Trace.SampleRatio < 0 || c.Trace.SampleRatio > 1 {
 		return fmt.Errorf("TRACE_SAMPLE_RATIO must be between 0 and 1")
 	}
+	if c.Admin.BlockProfileRate < 0 || c.Admin.MutexProfileFraction < 0 {
+		return fmt.Errorf("pprof sampling rates must not be negative")
+	}
 	return nil
 }
 
@@ -143,6 +162,10 @@ func (c *ServerConfig) GetServerAddress() string {
 // GetGRPCAddress возвращает адрес gRPC сервера
 func (c *ServerConfig) GetGRPCAddress() string {
 	return fmt.Sprintf("%s:%s", c.Host, c.GRPCPort)
+}
+
+func (c *AdminConfig) GetAddress() string {
+	return fmt.Sprintf("%s:%s", c.Host, c.Port)
 }
 
 func getEnv(key, defaultValue string) string {

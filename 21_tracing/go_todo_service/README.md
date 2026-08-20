@@ -13,6 +13,8 @@ curl -H 'X-User-ID: 1' http://localhost:8080/api/v1/todos
 - HTTP API: <http://localhost:8080>
 - gRPC: `localhost:50051`
 - Jaeger UI: <http://localhost:16686>
+- Метрики и pprof (только loopback): <http://localhost:9090/metrics>, <http://localhost:9090/debug/pprof/>
+- Prometheus UI: <http://localhost:9091>
 - Collector health: <http://localhost:13133>
 - лекция: [../lecture.md](../lecture.md)
 
@@ -268,6 +270,11 @@ make init              # Создать .env из .env.example
 | `SERVER_READ_TIMEOUT`   | Таймаут чтения (сек)        | 10           |
 | `SERVER_WRITE_TIMEOUT`  | Таймаут записи (сек)        | 10           |
 | `SERVER_SHUTDOWN_TIMEOUT`| Таймаут завершения (сек)   | 5            |
+| `ADMIN_HOST`             | Host внутреннего metrics/pprof сервера | 127.0.0.1 |
+| `ADMIN_PORT`             | Порт внутреннего metrics/pprof сервера | 9090 |
+| `PPROF_TOKEN`            | Необязательный Bearer-токен для pprof | (пусто) |
+| `PPROF_BLOCK_PROFILE_RATE` | Частота block profile; 0 отключает сбор | 0 |
+| `PPROF_MUTEX_PROFILE_FRACTION` | Доля mutex contention events; 0 отключает сбор | 0 |
 | `DB_HOST`               | Хост PostgreSQL             | localhost    |
 | `DB_PORT`               | Порт PostgreSQL             | 5432         |
 | `DB_USER`               | Пользователь БД             | postgres     |
@@ -448,6 +455,9 @@ curl -H 'X-User-ID: 1' http://localhost:8080/api/v1/todos
 ### Мониторинг
 
 - **Jaeger UI**: `http://localhost:16686`
+- **Prometheus UI**: `http://localhost:9091`
+- **Prometheus scrape endpoint**: `http://localhost:9090/metrics`
+- **Pprof**: `http://localhost:9090/debug/pprof/` (вынесен с публичного API)
 - **Поиск трассировок**: `grep "trace_id" logs/app.log`
 - **Подсчет трассировок**: `grep "trace_id" logs/app.log | wc -l`
 

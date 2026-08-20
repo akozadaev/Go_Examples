@@ -43,6 +43,14 @@ services:
       timeout: 5s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./deploy/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:9091:9090"
+
   app:
     build:
       context: .
@@ -50,6 +58,10 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
       SERVER_GRPC_PORT: 50051
+      ADMIN_HOST: 0.0.0.0
+      ADMIN_PORT: 9090
+      PPROF_BLOCK_PROFILE_RATE: 1
+      PPROF_MUTEX_PROFILE_FRACTION: 1
       GIN_MODE: release
       GRPC_REFLECTION_ENABLED: "true"
       DB_HOST: postgres
@@ -76,6 +88,7 @@ services:
     ports:
       - "8080:8080"
       - "50051:50051"
+      - "127.0.0.1:9090:9090"
     init: true
     stop_grace_period: 15s
 

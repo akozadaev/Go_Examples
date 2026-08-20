@@ -1,9 +1,11 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -14,16 +16,16 @@ var Logger *zap.Logger
 
 // Config конфигурация для логгера
 type Config struct {
-	Level       string `yaml:"level" json:"level"`               // debug, info, warn, error, fatal
-	Format      string `yaml:"format" json:"format"`             // json или text
-	Filename    string `yaml:"filename" json:"filename"`         // путь к файлу лога
-	MaxSize     int    `yaml:"max_size" json:"max_size"`         // максимальный размер файла в MB
-	MaxAge      int    `yaml:"max_age" json:"max_age"`           // максимальный возраст файла в днях
-	MaxBackups  int    `yaml:"max_backups" json:"max_backups"`   // максимальное количество резервных файлов
-	Compress    bool   `yaml:"compress" json:"compress"`         // сжимать старые файлы
-	LocalTime   bool   `yaml:"local_time" json:"local_time"`     // использовать локальное время для имен файлов
-	RotateDaily bool   `yaml:"rotate_daily" json:"rotate_daily"` // ротация по дням
-	EnableStdout bool  `yaml:"enable_stdout" json:"enable_stdout"` // дублировать в stdout для разработки
+	Level        string `yaml:"level" json:"level"`                 // debug, info, warn, error, fatal
+	Format       string `yaml:"format" json:"format"`               // json или text
+	Filename     string `yaml:"filename" json:"filename"`           // путь к файлу лога
+	MaxSize      int    `yaml:"max_size" json:"max_size"`           // максимальный размер файла в MB
+	MaxAge       int    `yaml:"max_age" json:"max_age"`             // максимальный возраст файла в днях
+	MaxBackups   int    `yaml:"max_backups" json:"max_backups"`     // максимальное количество резервных файлов
+	Compress     bool   `yaml:"compress" json:"compress"`           // сжимать старые файлы
+	LocalTime    bool   `yaml:"local_time" json:"local_time"`       // использовать локальное время для имен файлов
+	RotateDaily  bool   `yaml:"rotate_daily" json:"rotate_daily"`   // ротация по дням
+	EnableStdout bool   `yaml:"enable_stdout" json:"enable_stdout"` // дублировать в stdout для разработки
 }
 
 // Init инициализирует логгер
@@ -90,23 +92,44 @@ func Init(cfg *Config) error {
 
 	// Создаем логгер
 	Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	zap.ReplaceGlobals(Logger)
 
 	return nil
+}
+
+// FromContext returns the application logger enriched with correlation fields.
+func FromContext(ctx context.Context) *zap.Logger {
+	base := Logger
+	if base == nil {
+		base = zap.NewNop()
+	}
+	fields := make([]zap.Field, 0, 3)
+	if requestID, ok := GetRequestIDFromContext(ctx); ok {
+		fields = append(fields, zap.String("request_id", requestID))
+	}
+	spanContext := oteltrace.SpanContextFromContext(ctx)
+	if spanContext.IsValid() {
+		fields = append(fields,
+			zap.String("trace_id", spanContext.TraceID().String()),
+			zap.String("span_id", spanContext.SpanID().String()),
+		)
+	}
+	return base.With(fields...)
 }
 
 // InitDefault инициализирует логгер с настройками по умолчанию
 func InitDefault() error {
 	cfg := &Config{
-		Level:       "info",
-		Format:      "json",
-		Filename:    "logs/app.log", // по умолчанию сохраняем в файл
-		MaxSize:     100,            // 100 MB
-		MaxAge:      30,             // 30 дней
-		MaxBackups:  5,              // 5 резервных файлов
-		Compress:    true,           // сжимать старые файлы
-		LocalTime:   true,           // использовать локальное время
-		RotateDaily: false,          // ротация только по размеру
-		EnableStdout: false,        // по умолчанию не дублируем в stdout
+		Level:        "info",
+		Format:       "json",
+		Filename:     "logs/app.log", // по умолчанию сохраняем в файл
+		MaxSize:      100,            // 100 MB
+		MaxAge:       30,             // 30 дней
+		MaxBackups:   5,              // 5 резервных файлов
+		Compress:     true,           // сжимать старые файлы
+		LocalTime:    true,           // использовать локальное время
+		RotateDaily:  false,          // ротация только по размеру
+		EnableStdout: false,          // по умолчанию не дублируем в stdout
 	}
 	return Init(cfg)
 }

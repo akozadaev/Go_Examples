@@ -51,9 +51,7 @@ func Logger() gin.HandlerFunc {
 			zap.Int("body_size", bodySize),
 		}
 
-		if logger.Logger != nil {
-			logger.Logger.Log(logLevel, "HTTP Request", fields...)
-		}
+		logger.FromContext(c.Request.Context()).Log(logLevel, "HTTP Request", fields...)
 
 		logger.LogHTTPRequest(method, path, statusCode, latency, clientIP, userAgent, bodySize)
 	}

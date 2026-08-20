@@ -9,7 +9,6 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 // NewPostgresDB создает подключение к PostgreSQL
@@ -17,7 +16,7 @@ func NewPostgresDB(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 	dsn := cfg.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(gormLogger.Info),
+		Logger: newCorrelatedGORMLogger(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)

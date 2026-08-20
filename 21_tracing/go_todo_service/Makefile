@@ -161,9 +161,9 @@ profile:
 profile-web:
 	@echo "Opening pprof web interface..."
 	@echo "Available endpoints:"
-	@echo "  http://localhost:8080/debug/pprof/"
-	@echo "  go tool pprof -http=:8081 http://localhost:8080/debug/pprof/heap"
-	@echo "  go tool pprof -http=:8081 http://localhost:8080/debug/pprof/profile"
+	@echo "  http://localhost:9090/debug/pprof/"
+	@echo "  go tool pprof -http=:8081 http://localhost:9090/debug/pprof/heap"
+	@echo "  go tool pprof -http=:8081 http://localhost:9090/debug/pprof/profile"
 
 profile-load:
 	@echo "Running full profiling test with load..."

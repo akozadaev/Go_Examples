@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	todopb "github.com/akozadaev/go_todo_service/api/proto"
+	"github.com/akozadaev/go_todo_service/internal/logger"
 	"github.com/akozadaev/go_todo_service/internal/model"
 	"github.com/akozadaev/go_todo_service/internal/repository"
 	"github.com/akozadaev/go_todo_service/internal/service"
@@ -22,7 +23,6 @@ import (
 type TodoGRPCHandler struct {
 	todopb.UnimplementedTodoServiceServer
 	service service.TodoService
-	logger  *zap.Logger
 }
 
 const grpcUserIDMetadataKey = "user-id"
@@ -31,7 +31,6 @@ const grpcUserIDMetadataKey = "user-id"
 func NewTodoGRPCHandler(service service.TodoService) *TodoGRPCHandler {
 	return &TodoGRPCHandler{
 		service: service,
-		logger:  zap.L(),
 	}
 }
 
@@ -42,7 +41,7 @@ func (h *TodoGRPCHandler) CreateTodo(ctx context.Context, req *todopb.CreateTodo
 		return nil, err
 	}
 
-	h.logger.Info("gRPC: Creating todo", zap.Uint64("user_id", userID), zap.String("title", req.Title))
+	logger.FromContext(ctx).Info("gRPC: Creating todo", zap.Uint64("user_id", userID), zap.String("title", req.Title))
 
 	createReq := &model.TodoCreateRequest{
 		Title:       req.Title,
@@ -52,11 +51,11 @@ func (h *TodoGRPCHandler) CreateTodo(ctx context.Context, req *todopb.CreateTodo
 
 	todo, err := h.service.Create(ctx, createReq)
 	if err != nil {
-		h.logger.Error("gRPC: Failed to create todo", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to create todo", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to create todo")
 	}
 
-	h.logger.Info("gRPC: Successfully created todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", uint64(todo.ID)))
+	logger.FromContext(ctx).Info("gRPC: Successfully created todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", uint64(todo.ID)))
 	return &todopb.TodoResponse{Todo: h.toProtoTodo(todo)}, nil
 }
 
@@ -67,19 +66,19 @@ func (h *TodoGRPCHandler) GetTodo(ctx context.Context, req *todopb.GetTodoReques
 		return nil, err
 	}
 
-	h.logger.Info("gRPC: Getting todo by ID", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Getting todo by ID", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 
 	todo, err := h.service.GetByID(ctx, uint(req.Id))
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			h.logger.Info("gRPC: Todo not found", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+			logger.FromContext(ctx).Info("gRPC: Todo not found", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 			return nil, status.Error(codes.NotFound, "todo not found")
 		}
-		h.logger.Error("gRPC: Failed to get todo", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to get todo", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to get todo")
 	}
 
-	h.logger.Info("gRPC: Successfully fetched todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Successfully fetched todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 	return &todopb.TodoResponse{Todo: h.toProtoTodo(todo)}, nil
 }
 
@@ -90,11 +89,11 @@ func (h *TodoGRPCHandler) ListTodos(ctx context.Context, _ *todopb.Empty) (*todo
 		return nil, err
 	}
 
-	h.logger.Info("gRPC: Getting all todos", zap.Uint64("user_id", userID))
+	logger.FromContext(ctx).Info("gRPC: Getting all todos", zap.Uint64("user_id", userID))
 
 	todos, err := h.service.GetAll(ctx)
 	if err != nil {
-		h.logger.Error("gRPC: Failed to get todos", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to get todos", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to get todos")
 	}
 
@@ -103,7 +102,7 @@ func (h *TodoGRPCHandler) ListTodos(ctx context.Context, _ *todopb.Empty) (*todo
 		protoTodos[i] = h.toProtoTodo(&t)
 	}
 
-	h.logger.Info("gRPC: Successfully fetched todos", zap.Uint64("user_id", userID), zap.Int("count", len(todos)))
+	logger.FromContext(ctx).Info("gRPC: Successfully fetched todos", zap.Uint64("user_id", userID), zap.Int("count", len(todos)))
 	return &todopb.ListTodosResponse{Todos: protoTodos}, nil
 }
 
@@ -114,7 +113,7 @@ func (h *TodoGRPCHandler) UpdateTodo(ctx context.Context, req *todopb.UpdateTodo
 		return nil, err
 	}
 
-	h.logger.Info("gRPC: Updating todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Updating todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 
 	updateReq := &model.TodoUpdateRequest{
 		Title:       req.Title,
@@ -125,14 +124,14 @@ func (h *TodoGRPCHandler) UpdateTodo(ctx context.Context, req *todopb.UpdateTodo
 	todo, err := h.service.Update(ctx, uint(req.Id), updateReq)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			h.logger.Info("gRPC: Todo not found for update", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+			logger.FromContext(ctx).Info("gRPC: Todo not found for update", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 			return nil, status.Error(codes.NotFound, "todo not found")
 		}
-		h.logger.Error("gRPC: Failed to update todo", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to update todo", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to update todo")
 	}
 
-	h.logger.Info("gRPC: Successfully updated todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Successfully updated todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 	return &todopb.TodoResponse{Todo: h.toProtoTodo(todo)}, nil
 }
 
@@ -143,19 +142,19 @@ func (h *TodoGRPCHandler) DeleteTodo(ctx context.Context, req *todopb.DeleteTodo
 		return nil, err
 	}
 
-	h.logger.Info("gRPC: Deleting todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Deleting todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 
 	err = h.service.Delete(ctx, uint(req.Id))
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			h.logger.Info("gRPC: Todo not found for delete", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+			logger.FromContext(ctx).Info("gRPC: Todo not found for delete", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 			return nil, status.Error(codes.NotFound, "todo not found")
 		}
-		h.logger.Error("gRPC: Failed to delete todo", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to delete todo", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to delete todo")
 	}
 
-	h.logger.Info("gRPC: Successfully deleted todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
+	logger.FromContext(ctx).Info("gRPC: Successfully deleted todo", zap.Uint64("user_id", userID), zap.Uint64("todo_id", req.Id))
 	return &todopb.Empty{}, nil
 }
 
@@ -166,22 +165,22 @@ func (h *TodoGRPCHandler) ListTodosStream(_ *todopb.Empty, stream todopb.TodoSer
 		return err
 	}
 
-	h.logger.Info("gRPC: Starting todo stream", zap.Uint64("user_id", userID))
+	logger.FromContext(ctx).Info("gRPC: Starting todo stream", zap.Uint64("user_id", userID))
 
 	todos, err := h.service.GetAll(ctx)
 	if err != nil {
-		h.logger.Error("gRPC: Failed to get todos for stream", zap.Error(err))
+		logger.FromContext(ctx).Error("gRPC: Failed to get todos for stream", zap.Error(err))
 		return status.Error(codes.Internal, "failed to get todos")
 	}
 
 	for _, todo := range todos {
 		if err := stream.Send(h.toProtoTodo(&todo)); err != nil {
-			h.logger.Error("gRPC: Failed to send todo in stream", zap.Error(err))
+			logger.FromContext(ctx).Error("gRPC: Failed to send todo in stream", zap.Error(err))
 			return err
 		}
 	}
 
-	h.logger.Info("gRPC: Completed todo stream", zap.Uint64("user_id", userID), zap.Int("count", len(todos)))
+	logger.FromContext(ctx).Info("gRPC: Completed todo stream", zap.Uint64("user_id", userID), zap.Int("count", len(todos)))
 	return nil
 }
 
@@ -192,7 +191,7 @@ func (h *TodoGRPCHandler) BulkCreateTodos(stream todopb.TodoService_BulkCreateTo
 		return err
 	}
 
-	h.logger.Info("gRPC: Starting bulk create todos", zap.Uint64("user_id", userID))
+	logger.FromContext(ctx).Info("gRPC: Starting bulk create todos", zap.Uint64("user_id", userID))
 
 	var createdTodos []*todopb.Todo
 	createdCount := 0
@@ -203,7 +202,7 @@ func (h *TodoGRPCHandler) BulkCreateTodos(stream todopb.TodoService_BulkCreateTo
 			break
 		}
 		if err != nil {
-			h.logger.Error("gRPC: Ошибка чтения клиентского потока", zap.Error(err))
+			logger.FromContext(ctx).Error("gRPC: Ошибка чтения клиентского потока", zap.Error(err))
 			return status.Error(codes.Unavailable, "failed to receive todo")
 		}
 
@@ -215,7 +214,7 @@ func (h *TodoGRPCHandler) BulkCreateTodos(stream todopb.TodoService_BulkCreateTo
 
 		todo, err := h.service.Create(ctx, createReq)
 		if err != nil {
-			h.logger.Error("gRPC: Failed to create todo in bulk", zap.Error(err))
+			logger.FromContext(ctx).Error("gRPC: Failed to create todo in bulk", zap.Error(err))
 			return status.Error(codes.Internal, "failed to create todo")
 		}
 
@@ -223,7 +222,7 @@ func (h *TodoGRPCHandler) BulkCreateTodos(stream todopb.TodoService_BulkCreateTo
 		createdCount++
 	}
 
-	h.logger.Info("gRPC: Completed bulk create", zap.Uint64("user_id", userID), zap.Int("count", createdCount))
+	logger.FromContext(ctx).Info("gRPC: Completed bulk create", zap.Uint64("user_id", userID), zap.Int("count", createdCount))
 	return stream.SendAndClose(&todopb.BulkCreateResponse{
 		Todos:        createdTodos,
 		CreatedCount: int32(createdCount),
@@ -250,19 +249,19 @@ func (h *TodoGRPCHandler) ensureUserContext(ctx context.Context) (context.Contex
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		h.logger.Warn("gRPC: Missing metadata with user id")
+		logger.FromContext(ctx).Warn("gRPC: Missing metadata with user id")
 		return ctx, 0, status.Error(codes.Unauthenticated, "user-id metadata header required")
 	}
 
 	values := md.Get(grpcUserIDMetadataKey)
 	if len(values) == 0 {
-		h.logger.Warn("gRPC: Missing user-id metadata value")
+		logger.FromContext(ctx).Warn("gRPC: Missing user-id metadata value")
 		return ctx, 0, status.Error(codes.Unauthenticated, "user-id metadata header required")
 	}
 
 	parsedID, err := strconv.ParseUint(values[0], 10, 64)
 	if err != nil || parsedID == 0 {
-		h.logger.Warn("gRPC: Invalid user-id metadata value", zap.String("value", values[0]), zap.Error(err))
+		logger.FromContext(ctx).Warn("gRPC: Invalid user-id metadata value", zap.String("value", values[0]), zap.Error(err))
 		return ctx, 0, status.Error(codes.InvalidArgument, "invalid user-id metadata value")
 	}
 
