@@ -14,6 +14,9 @@ func TestFanOutProcessesEveryJobOnce(t *testing.T) {
 	}
 	sort.Ints(got)
 	want := []int{1, 4, 9, 16, 25}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("got %v, want %v", got, want)
